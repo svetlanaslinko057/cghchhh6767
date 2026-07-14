@@ -9,18 +9,29 @@ const API = process.env.REACT_APP_BACKEND_URL + '/api';
 
 function TrackSection() {
   const { t } = useTranslation();
-  const [f, setF] = useState({ code: '', email: '' });
+  const [f, setF] = useState({ code: '', contact: '' });
   const [state, setState] = useState('idle'); // idle | checking | done | notfound | error
   const [res, setRes] = useState(null);
+  const secRef = useRef(null);
+
+  // Deep link from emails: /order?track=CODE prefills the code and scrolls here
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('track');
+    if (q) {
+      setF((p) => ({ ...p, code: q.trim() }));
+      const timer = setTimeout(() => secRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 700);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!f.code.trim() || !f.email.trim()) return;
+    if (!f.code.trim() || !f.contact.trim()) return;
     setState('checking');
     try {
       const r = await fetch(`${API}/orders/track`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: f.code.trim(), email: f.email.trim() }),
+        body: JSON.stringify({ code: f.code.trim(), contact: f.contact.trim() }),
       });
       if (r.status === 404) { setState('notfound'); setRes(null); return; }
       if (!r.ok) throw new Error();
@@ -33,7 +44,7 @@ function TrackSection() {
   const label = { display: 'block', marginBottom: '.5rem', fontFamily: 'var(--font-mono)', fontSize: '.7rem', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--ink-soft)' };
 
   return (
-    <section className="trackx" data-testid="track-section">
+    <section className="trackx" data-testid="track-section" ref={secRef}>
       <div className="container" style={{ maxWidth: 820 }}>
         <div className="trackx__card">
           <div className="trackx__perf" aria-hidden="true" />

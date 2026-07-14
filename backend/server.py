@@ -29,6 +29,13 @@ db = client[os.environ["DB_NAME"]]
 JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret")
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@translate.ua")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Translate2026!")
+# Public site origin for links inside emails (tracking etc.); empty => links omitted
+PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "").rstrip("/")
+
+
+def track_url(order_id: str) -> str:
+    """Deep link to the order-tracking form on the public site."""
+    return f"{PUBLIC_BASE_URL}/order?track={str(order_id)[:8]}" if PUBLIC_BASE_URL else ""
 
 MAX_FILE_MB = 25
 ALLOWED_EXT = {"pdf", "jpg", "jpeg", "png", "webp", "heic", "doc", "docx", "txt"}
@@ -220,19 +227,26 @@ DEFAULT_PRICING = {
 }
 
 SEED_WORK_ITEMS = [
-    {"title": "Договори", "note": "Купівля-продаж, оренда, трудові угоди", "price_from": 45,
+    {"title": "Договори", "title_de": "Verträge", "title_en": "Contracts",
+     "note": "Купівля-продаж, оренда, трудові угоди", "note_de": "Kaufverträge, Miete, Arbeitsverträge", "note_en": "Sales, lease and employment agreements", "price_from": 45,
      "image_url": "https://images.unsplash.com/photo-1589330694653-ded6df03f754?crop=entropy&cs=srgb&fm=jpg&q=80&w=1200"},
-    {"title": "Довіреності", "note": "Нотаріальні довіреності та заяви", "price_from": 35,
+    {"title": "Довіреності", "title_de": "Vollmachten", "title_en": "Powers of attorney",
+     "note": "Нотаріальні довіреності та заяви", "note_de": "Notarielle Vollmachten und Erklärungen", "note_en": "Notarial powers of attorney and declarations", "price_from": 35,
      "image_url": "https://images.unsplash.com/photo-1780246029794-2935f29d80b2?crop=entropy&cs=srgb&fm=jpg&q=80&w=1200"},
-    {"title": "Свідоцтва", "note": "Народження, шлюб, розлучення", "price_from": 35,
+    {"title": "Свідоцтва", "title_de": "Urkunden", "title_en": "Certificates",
+     "note": "Народження, шлюб, розлучення", "note_de": "Geburt, Ehe, Scheidung", "note_en": "Birth, marriage, divorce", "price_from": 35,
      "image_url": "https://images.unsplash.com/photo-1559588501-59a118c47e59?crop=entropy&cs=srgb&fm=jpg&q=80&w=1200"},
-    {"title": "Дипломи", "note": "Дипломи з додатками, атестати", "price_from": 45,
+    {"title": "Дипломи", "title_de": "Diplome", "title_en": "Diplomas",
+     "note": "Дипломи з додатками, атестати", "note_de": "Diplome mit Anhängen, Zeugnisse", "note_en": "Diplomas with transcripts, school certificates", "price_from": 45,
      "image_url": "https://images.unsplash.com/photo-1638636241638-aef5120c5153?crop=entropy&cs=srgb&fm=jpg&q=80&w=1200"},
-    {"title": "Рішення судів", "note": "Рішення, ухвали, позовні заяви", "price_from": 55,
+    {"title": "Рішення судів", "title_de": "Gerichtsentscheidungen", "title_en": "Court decisions",
+     "note": "Рішення, ухвали, позовні заяви", "note_de": "Urteile, Beschlüsse, Klageschriften", "note_en": "Judgments, rulings, statements of claim", "price_from": 55,
      "image_url": "https://images.unsplash.com/photo-1554224155-cfa08c2a758f?crop=entropy&cs=srgb&fm=jpg&q=80&w=1200"},
-    {"title": "Архівні документи", "note": "Довідки, виписки, старі акти", "price_from": 45,
+    {"title": "Архівні документи", "title_de": "Archivdokumente", "title_en": "Archival documents",
+     "note": "Довідки, виписки, старі акти", "note_de": "Bescheinigungen, Auszüge, alte Urkunden", "note_en": "Certificates, extracts, old records", "price_from": 45,
      "image_url": "https://images.unsplash.com/photo-1526656001029-20a71b17f7ba?crop=entropy&cs=srgb&fm=jpg&q=80&w=1200"},
-    {"title": "Рукописи", "note": "Листи, записи, історичні документи", "price_from": 60,
+    {"title": "Рукописи", "title_de": "Handschriften", "title_en": "Manuscripts",
+     "note": "Листи, записи, історичні документи", "note_de": "Briefe, Aufzeichnungen, historische Dokumente", "note_en": "Letters, notes, historical documents", "price_from": 60,
      "image_url": "https://images.unsplash.com/photo-1561812938-f6e60cbf95e3?crop=entropy&cs=srgb&fm=jpg&q=80&w=1200"},
 ]
 
@@ -272,12 +286,21 @@ def _esc(v: str) -> str:
     return html_lib.escape(str(v or ""))
 
 
-def _email_shell(title: str, rows: List[tuple]) -> str:
+def _email_shell(title: str, rows: List[tuple], button: Optional[tuple] = None) -> str:
     trs = "".join(
         f'<tr><td style="padding:8px 14px;font-family:monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8a8578;white-space:nowrap;vertical-align:top">{_esc(k)}</td>'
         f'<td style="padding:8px 14px;font-size:14px;color:#1B1B18">{_esc(v)}</td></tr>'
         for k, v in rows if str(v or "").strip()
     )
+    btn = ""
+    if button and button[1]:
+        label, url = button
+        btn = (
+            f'<div style="padding:4px 14px 20px"><a href="{_esc(url)}" '
+            'style="display:inline-block;background:#1B1B18;color:#F5F1E8;text-decoration:none;'
+            'padding:12px 26px;border-radius:100px;font-family:monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase">'
+            f'{_esc(label)}</a></div>'
+        )
     return (
         '<div style="background:#F5F1E8;padding:32px 16px">'
         '<table role="presentation" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;width:100%">'
@@ -285,6 +308,7 @@ def _email_shell(title: str, rows: List[tuple]) -> str:
         '<tr><td style="background:#FCFAF5;border:1px solid #DCD6C9;border-radius:10px;overflow:hidden">'
         f'<div style="padding:20px 14px 6px"><h2 style="margin:0;font-size:20px;color:#1B1B18;font-family:Georgia,serif">{_esc(title)}</h2></div>'
         f'<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:10px 0 16px">{trs}</table>'
+        f'{btn}'
         '</td></tr>'
         '<tr><td style="padding:14px 2px"><span style="font-family:monospace;font-size:10px;letter-spacing:.12em;color:#8a8578">AUTOMATED NOTIFICATION · ADMIN PANEL</span></td></tr>'
         '</table></div>'
@@ -301,14 +325,14 @@ def _send_via_resend(api_key: str, sender: str, recipient: str, subject: str, ht
     })
 
 
-async def notify_admin(subject: str, title: str, rows: List[tuple]):
+async def notify_admin(subject: str, title: str, rows: List[tuple], button: Optional[tuple] = None):
     """Best-effort email notification. Never raises."""
     try:
         s = await get_settings()
         n = s["notifications"]
         if not n.get("enabled") or not n.get("resend_api_key") or not n.get("recipient_email"):
             return
-        html = _email_shell(title, rows)
+        html = _email_shell(title, rows, button=button)
         result = await asyncio.to_thread(
             _send_via_resend, n["resend_api_key"], n.get("sender_email"), n["recipient_email"], subject, html
         )
@@ -329,13 +353,14 @@ async def notify_client_status(order: dict, status: str):
             return
         label = ORDER_STATUS_LABELS.get(status, status)
         code = str(order.get("id", ""))[:8]
+        url = track_url(order.get("id", ""))
         html = _email_shell("Статус вашого замовлення оновлено", [
             ("Код замовлення", code),
             ("Новий статус", label),
             ("Документ", order.get("doc_type") or "—"),
             ("Напрям", dir_label(order.get("direction", ""))),
-            ("Підказка", "Статус можна перевірити на сайті: сторінка «Замовити переклад» → «Статус замовлення»."),
-        ])
+            ("Підказка", "Статус можна перевірити за кодом і вашим email або телефоном на сторінці «Замовити переклад» → «Статус замовлення»."),
+        ], button=("Перевірити статус →", url))
         result = await asyncio.to_thread(
             _send_via_resend, n["resend_api_key"], n.get("sender_email"), order["email"],
             f"Статус замовлення {code}: {label}", html,
@@ -465,6 +490,8 @@ async def create_estimate(payload: EstimateRequest):
             ("Знижка", f"{payload.discount_pct:g}%" if payload.discount_pct else ""),
             ("Орієнтовна ціна", f"від {payload.price:g} {cur}"),
             ("Коментар", payload.comment),
+            ("Код замовлення", order.id[:8]),
+            ("Трекінг", track_url(order.id)),
         ],
     ))
     return {"id": order.id, "status": "received", "code": order.id[:8]}
@@ -536,6 +563,8 @@ async def create_order(
             ("Напрям", dir_label(order.direction)),
             ("Тип документа", order.doc_type), ("Коментар", order.message),
             ("Файлів", str(len(stored_files)) if stored_files else ""),
+            ("Код замовлення", order_id[:8]),
+            ("Трекінг", track_url(order_id)),
         ],
     ))
     return {"id": order_id, "status": "received", "files": len(stored_files), "code": order_id[:8]}
@@ -924,6 +953,19 @@ async def startup():
             ]
             await db.work_items.insert_many(docs)
             logger.info(f"Seeded {len(docs)} work items")
+        else:
+            # Idempotent migration: add DE/EN translations to seeded items that lack them
+            # (matched by original UA title; admin-edited fields are never overwritten)
+            for item in SEED_WORK_ITEMS:
+                res = await db.work_items.update_many(
+                    {"title": item["title"], "title_de": {"$exists": False}},
+                    {"$set": {
+                        "title_de": item["title_de"], "title_en": item["title_en"],
+                        "note_de": item["note_de"], "note_en": item["note_en"],
+                    }},
+                )
+                if res.modified_count:
+                    logger.info(f"Work item '{item['title']}': added DE/EN translations")
     except Exception as e:
         logger.error(f"Work items seed failed: {e}")
     try:

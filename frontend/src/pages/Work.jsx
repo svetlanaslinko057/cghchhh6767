@@ -7,9 +7,12 @@ import { useSiteSettings, resolveMediaUrl } from '../lib/settings';
 const API = process.env.REACT_APP_BACKEND_URL + '/api';
 
 export default function Work() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const settings = useSiteSettings();
   const [items, setItems] = useState(null);
+  // Admin-managed card texts are per-language (UA base, DE/EN optional with UA fallback)
+  const lang = ['de', 'en'].includes(i18n.language) ? i18n.language : 'ua';
+  const loc = (item, key) => ((lang === 'ua' ? item[key] : item[`${key}_${lang}`] || item[key]) || '');
 
   useEffect(() => {
     fetch(`${API}/work`).then((r) => (r.ok ? r.json() : [])).then(setItems).catch(() => setItems([]));
@@ -41,8 +44,8 @@ export default function Work() {
                     <div className="ws-imgfade" />
                     <span className="ws-tag mono">AKTE / {String(i + 1).padStart(2, '0')}</span>
                     <div className="ws-bottom">
-                      <span className="work-term">{d.title}</span>
-                      {d.note && <span className="ws-note-sub">{d.note}</span>}
+                      <span className="work-term">{loc(d, 'title')}</span>
+                      {loc(d, 'note') && <span className="ws-note-sub">{loc(d, 'note')}</span>}
                     </div>
                     {d.price_from > 0 && <span className="ws-price mono" data-testid="work-price">від {d.price_from} €</span>}
                   </div>

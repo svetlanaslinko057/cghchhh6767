@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { adminApi } from './adminApi';
 import { resolveMediaUrl } from '../../lib/settings';
 
-const EMPTY = { title: '', note: '', direction: 'UA ⇄ DE', price_from: '', image_url: '', published: true };
+const EMPTY = { title: '', title_de: '', title_en: '', note: '', note_de: '', note_en: '', direction: 'UA ⇄ DE', price_from: '', image_url: '', published: true };
 
 function ItemForm({ initial, onSave, onCancel, saving }) {
   const [f, setF] = useState({ ...EMPTY, ...initial, price_from: initial?.price_from ?? '' });
@@ -32,12 +32,28 @@ function ItemForm({ initial, onSave, onCancel, saving }) {
     <form onSubmit={submit} className="adm-workform" data-testid="work-form">
       <div className="adm-grid">
         <div className="adm-field">
-          <label className="adm-label mono">Назва *</label>
+          <label className="adm-label mono">Назва (UA) *</label>
           <input className="adm-input" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="напр. Дипломи" data-testid="work-form-title" />
         </div>
         <div className="adm-field">
-          <label className="adm-label mono">Підпис (типи документів)</label>
+          <label className="adm-label mono">Підпис (UA)</label>
           <input className="adm-input" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="напр. Дипломи з додатками, атестати" data-testid="work-form-note" />
+        </div>
+        <div className="adm-field">
+          <label className="adm-label mono">Назва (DE)</label>
+          <input className="adm-input" value={f.title_de || ''} onChange={(e) => setF({ ...f, title_de: e.target.value })} placeholder="z. B. Diplome" data-testid="work-form-title-de" />
+        </div>
+        <div className="adm-field">
+          <label className="adm-label mono">Підпис (DE)</label>
+          <input className="adm-input" value={f.note_de || ''} onChange={(e) => setF({ ...f, note_de: e.target.value })} placeholder="z. B. Diplome mit Anhängen" data-testid="work-form-note-de" />
+        </div>
+        <div className="adm-field">
+          <label className="adm-label mono">Назва (EN)</label>
+          <input className="adm-input" value={f.title_en || ''} onChange={(e) => setF({ ...f, title_en: e.target.value })} placeholder="e.g. Diplomas" data-testid="work-form-title-en" />
+        </div>
+        <div className="adm-field">
+          <label className="adm-label mono">Підпис (EN)</label>
+          <input className="adm-input" value={f.note_en || ''} onChange={(e) => setF({ ...f, note_en: e.target.value })} placeholder="e.g. Diplomas with transcripts" data-testid="work-form-note-en" />
         </div>
         <div className="adm-field">
           <label className="adm-label mono">Напрям</label>
