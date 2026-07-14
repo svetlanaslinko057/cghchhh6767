@@ -1,5 +1,21 @@
 # Проект: Oksana Oliferenko — переклади документів UA ↔ DE ↔ EN
 
+## Phase 8: Повний CMS контенту сайту — ЗАВЕРШЕННЯ (поточна сесія, 14.07) — ЗАВЕРШЕНО
+### Що було в репо (основа, вже реалізовано раніше)
+- Адмін-секція «07 Контент» (ContentView.jsx): SCHEMA-редактор УСІХ текстів сайту по мовах UA/DE/EN (акордеони: бренд/нав, hero, спеціалізація, вартість-блок, рукопис, про мене, метод, футер-CTA, CTA-стрічки, сторінки послуги/про/приклади/контакти/замовлення, заголовки секцій, калькулятор, швидка заявка, трекінг, правові лінки + кукі)
+- lib/contentStore.js: GET /api/content → overrides deep-merge над дефолтами (content.* → useContent(), locale.* → i18n.addResourceBundle); live-оновлення після збереження (refreshContent)
+- Backend: GET /api/content (публічний), PUT/DELETE /api/admin/content/{lang} (JWT), колекція site_content
+### ДОРОБЛЕНО в цій сесії (закриті прогалини — «повністю весь контент»)
+- **SEO тепер редагується з CMS**: у content/{uk,de,en}.js додано секцію `seo` (home/services/work/about/order/contact × title+description + offers[] для JSON-LD); lib/seo.js ПЕРЕПИСАНО — прибрано хардкод META/BRAND, тепер бере c.seo + c.brand.name через useContent() (og:site_name, титули, дескрипшини, JSON-LD name/makesOffer — усе з CMS); ROUTE_KEYS мапить шлях → ключ seo
+- **ContentView SCHEMA доповнено**: нова секція «SEO — заголовки та описи сторінок» (content-sec-seo, 6×title+description + offers strings); manuscript.legend (abbr/illegible/strike/fix — 4 поля); кікери сторінок locale.nav.work/contact/order (у секціях відповідних сторінок)
+- Систематичний аналіз покриття: скрипт витяг усі t('…')-ключі публічного коду та SCHEMA-шляхи — після доробки прогалин 0. Legacy-ключі locales (marquee, trust, docs, demo, process, ai, testimonials, cta, footer, faq, hero.*) НЕ використовуються компонентами (мертвий код старого лендінгу) — свідомо не в CMS
+- FAQ (3 мови: q/a + q_de/a_de + q_en/a_en у Налаштуваннях), правові тексти (3 мови у «Правові тексти»), приклади/ціни/відгуки — у своїх розділах (як і задумано; хінти в UI ведуть туди)
+### Тестування iteration_1 (Phase 8): backend 100% (15/15 — CRUD content по 3 мовах, 404 на fr, 401 без JWT, reset, регресія settings/pricing/work/legal/estimate), frontend 95% (усі функції працюють: секції рендеряться, мовні піли міняють значення, збереження ✓, SEO title на сайті з CMS, reset відновлює дефолти, калькулятор-регресія ок; єдине зауваження LOW — поля секцій рендеряться з невеликою async-затримкою, є стан «Завантаження…», не баг)
+- Тест-дані очищено: orders/contacts = 0, site_content = 0 (усі overrides скинуто, сайт на дефолтах)
+### Як користуватись (для власника)
+- Адмінка → «07 Контент» → обрати мову (UA/DE/EN) → розгорнути блок → редагувати → «Зберегти {мова}» — зміни на сайті одразу; «↺ Скинути {мова}» повертає стандартні тексти
+
+
 ## Redeploy 2rdf23dfc3SSDD (поточна сесія, 14.07) — ЗАВЕРШЕНО
 - Репозиторій https://github.com/svetlanaslinko057/2rdf23dfc3SSDD синхронізовано в /app (backend, frontend/src+public+config, memory, tests, plan.md, test_result.md, backend_test.py)
 - Превʼю: https://localization-stage.preview.emergentagent.com

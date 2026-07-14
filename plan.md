@@ -294,9 +294,14 @@ Status: ✅ COMPLETE (backend + public UI + admin + regression pass)
 ---
 
 ## 3) Next Actions
-1. Implement Phase 6A (rename) end-to-end (UI + SEO + backend email templates + OG image).
-2. Implement Phase 6B–6F (fast-lead conversion): calculator inline step + backend validation + quick form unification + global OrderModal + locales + CSS.
-3. Run Phase 6G tests and cleanup.
+1. ✅ DONE — Phase 6 (rename + fast-lead) shipped in repo.
+2. ✅ DONE — Phase 7 (EN site version + lang dropdown) shipped in repo.
+3. ✅ DONE (current session) — Phase 8: full site content CMS completed:
+   - Admin «Контент» section edits ALL public texts in UA/DE/EN (existing base),
+   - NEW: SEO titles/descriptions per route per language now CMS-managed (content.seo.* + seo.js refactor),
+   - NEW: manuscript legend labels + page kickers (locale.nav.work/contact/order) added to SCHEMA,
+   - Coverage audit: 0 public-site text keys remain outside admin control (FAQ/legal/pricing/work/reviews live in their own admin sections).
+4. Awaiting next user task.
 
 ---
 
