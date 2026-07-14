@@ -301,7 +301,8 @@ Status: ✅ COMPLETE (backend + public UI + admin + regression pass)
    - NEW: SEO titles/descriptions per route per language now CMS-managed (content.seo.* + seo.js refactor),
    - NEW: manuscript legend labels + page kickers (locale.nav.work/contact/order) added to SCHEMA,
    - Coverage audit: 0 public-site text keys remain outside admin control (FAQ/legal/pricing/work/reviews live in their own admin sections).
-4. Awaiting next user task.
+4. ✅ DONE (current session) — Phase 9: calculator doc-type names + pricing note in 3 languages (admin «Ціни»: name_de/name_en, note_de/note_en with UA fallback) + order tracking by email OR phone (phone-only leads can track; back-compat kept).
+5. Awaiting next user task.
 
 ---
 

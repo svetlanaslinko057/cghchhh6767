@@ -1,5 +1,18 @@
 # Проект: Oksana Oliferenko — переклади документів UA ↔ DE ↔ EN
 
+## Phase 9: Мультимовні типи документів у калькуляторі + трекінг phone-only (поточна сесія, 14.07) — ЗАВЕРШЕНО
+### A. Назви типів документів і примітка калькулятора — 3 мовами
+- **Backend**: DEFAULT_PRICING.doc_types тепер {name, name_de, name_en, price} (7 типів з перекладами DE/EN); note_de/note_en додані в DEFAULT_PRICING і PricingPayload; _merge_pricing підхоплює автоматично
+- **Калькулятор** (Calculator.jsx): docName(dt) — вибір назви за мовою сайту з UA-фолбеком; локалізована назва в селекті, у рядку чека (line 192) і примітка noteText (p.note_de/note_en); у заявку до адмінки (doc_type, message, store.calc) свідомо йде UA-назва (doc.name) — консистентність для адміна
+- **PricingScene.jsx**: ticker цін теж мовозалежний
+- **Адмінка «Ціни»**: кожен тип — 3 інпути назв (pricing-type-name-{i} / -de-{i} / -en-{i}, клас .adm-pricerow--i18n); примітка — 3 textarea (pricing-note / -de / -en); save() мапить name_de/name_en (spread p вже включає note_*)
+### B. Трекінг замовлення за email АБО телефоном (phone-only ліди)
+- **Backend** POST /api/orders/track: TrackRequest {code, contact, email(back-compat)}; пошук за id-префіксом коду (regex ^code), потім матч контакту: '@' → email case-insensitive, інакше телефон нормалізований (re.sub \D — будь-яке форматування +49 171 234-56-78 == +491712345678); 400 без контакту, 404 без збігу
+- **Order.jsx TrackSection**: одне поле track-contact «Email або телефон» (замість track-email), body {code, contact}
+- **Локалі ua/de/en**: track.contact (нове), track.intro/notFound і quick.trackHint оновлені під «email або телефон»; ContentView SCHEMA: locale.track.email → locale.track.contact
+### Тестування iteration_2: backend 100% (11/11), frontend 100% (5/5) — мультимовні назви/примітки в калькуляторі UA/DE/EN, адмін-редагування+збереження, трекінг телефоном у різному форматуванні, 404/400, back-compat email, регресія fast-lead. Тест-дані очищено (orders/contacts=0, pricing відновлено до дефолтів, site_content=0)
+
+
 ## Phase 8: Повний CMS контенту сайту — ЗАВЕРШЕННЯ (поточна сесія, 14.07) — ЗАВЕРШЕНО
 ### Що було в репо (основа, вже реалізовано раніше)
 - Адмін-секція «07 Контент» (ContentView.jsx): SCHEMA-редактор УСІХ текстів сайту по мовах UA/DE/EN (акордеони: бренд/нав, hero, спеціалізація, вартість-блок, рукопис, про мене, метод, футер-CTA, CTA-стрічки, сторінки послуги/про/приклади/контакти/замовлення, заголовки секцій, калькулятор, швидка заявка, трекінг, правові лінки + кукі)
