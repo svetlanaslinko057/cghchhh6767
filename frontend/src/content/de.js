@@ -4,6 +4,35 @@ export const de = {
   brand: { name: 'Oksana Oliferenko', line1: 'DOCUMENT TRANSLATION', line2: 'UA · DE · EN' },
   nav: { about: 'Über mich', services: 'Leistungen', work: 'Beispiele', faq: 'FAQ', contact: 'Kontakt', order: 'Übersetzung anfragen' },
 
+  // SEO — per-route meta (admin-editable via CMS)
+  seo: {
+    home: {
+      title: 'Oksana Oliferenko — Übersetzungen UA · DE · EN',
+      description: 'Professionelle Dokumentübersetzungen: Ukrainisch, Deutsch, Englisch. Juristische, notarielle, amtliche und handschriftliche Dokumente. Präzise und vertraulich.',
+    },
+    services: {
+      title: 'Leistungen — juristische & notarielle Übersetzungen | Oksana Oliferenko',
+      description: 'Übersetzung von Verträgen, Vollmachten, Urkunden, Diplomen, Gerichtsentscheidungen und Handschriften. Drei Sprachen: Ukrainisch, Deutsch, Englisch.',
+    },
+    work: {
+      title: 'Arbeitsproben & Preise | Oksana Oliferenko',
+      description: 'Beispiele von Dokumenttypen mit Richtpreisen ab 35 €. Online-Preisrechner für Übersetzungen: Ukrainisch, Deutsch, Englisch.',
+    },
+    about: {
+      title: 'Über mich — Übersetzer UA · DE · EN | Oksana Oliferenko',
+      description: 'Übersetzer für Dokumente, bei denen jedes Wort juristisches Gewicht hat. Erfahrung mit notariellen, amtlichen und handschriftlichen Texten.',
+    },
+    order: {
+      title: 'Übersetzung online anfragen | Oksana Oliferenko',
+      description: 'Senden Sie Ihr Dokument — erhalten Sie eine Einschätzung von Umfang, Frist und Kosten. Datei-Upload PDF, JPG, DOCX bis 25 MB. Vertraulich.',
+    },
+    contact: {
+      title: 'Kontakt — schnelle Verbindung | Oksana Oliferenko',
+      description: 'Schreiben Sie mir — ich antworte schnellstmöglich. Telegram, WhatsApp, Viber, E-Mail oder Telefon. Übersetzungen: Ukrainisch, Deutsch, Englisch.',
+    },
+    offers: ['Juristische Übersetzungen', 'Notarielle Übersetzungen', 'Übersetzung von Handschriften'],
+  },
+
   hero: {
     role: 'Übersetzer für Ukrainisch, Deutsch und Englisch',
     lead: 'Juristische, notarielle, amtliche und handschriftliche Dokumente auf Ukrainisch, Deutsch und Englisch. Präzise, vertraulich und mit besonderer Aufmerksamkeit für jede Formulierung.',

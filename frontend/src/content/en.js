@@ -4,6 +4,35 @@ export const en = {
   brand: { name: 'Oksana Oliferenko', line1: 'DOCUMENT TRANSLATION', line2: 'UA · DE · EN' },
   nav: { about: 'About me', services: 'Services', work: 'Examples', faq: 'FAQ', contact: 'Contact', order: 'Order a translation' },
 
+  // SEO — per-route meta (admin-editable via CMS)
+  seo: {
+    home: {
+      title: 'Oksana Oliferenko — document translation UA · DE · EN',
+      description: 'Professional document translation: Ukrainian, German, English. Legal, notarial, official and handwritten documents. Precise, confidential, on time.',
+    },
+    services: {
+      title: 'Translation services — legal, notarial, handwritten | Oksana Oliferenko',
+      description: 'Translation of contracts, powers of attorney, certificates, diplomas, court decisions and handwritten documents. Three languages: Ukrainian, German, English.',
+    },
+    work: {
+      title: 'Work examples & translation prices | Oksana Oliferenko',
+      description: 'Examples of document types with estimated prices from €35. Online translation price calculator: Ukrainian, German, English.',
+    },
+    about: {
+      title: 'About me — translator UA · DE · EN | Oksana Oliferenko',
+      description: 'A translator for documents where every word carries legal weight. Experience with notarial, official and handwritten materials.',
+    },
+    order: {
+      title: 'Order a document translation online | Oksana Oliferenko',
+      description: 'Send your document — get an assessment of scope, deadline and price. File upload PDF, JPG, DOCX up to 25 MB. Confidential.',
+    },
+    contact: {
+      title: 'Contact — quick connection | Oksana Oliferenko',
+      description: 'Write to me — I will reply as soon as possible. Telegram, WhatsApp, Viber, email or phone. Document translation: Ukrainian, German, English.',
+    },
+    offers: ['Legal translations', 'Notarial translations', 'Translation of handwritten documents'],
+  },
+
   // SCENE 1 — HERO
   hero: {
     role: 'Professional document translator',

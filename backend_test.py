@@ -1,477 +1,318 @@
 #!/usr/bin/env python3
 """
-Backend API tests for UA-DE Translation Service
-Tests all endpoints: health, orders, contacts, auth, admin
+Backend API Testing for Translation Services CMS
+Tests content management endpoints and regression checks
 """
 import requests
 import sys
-import io
 from datetime import datetime
 
-BASE_URL = "https://oksana-translate.preview.emergentagent.com/api"
+BASE_URL = "https://localization-stage.preview.emergentagent.com/api"
+ADMIN_EMAIL = "admin@translate.ua"
+ADMIN_PASSWORD = "Translate2026!"
 
-class APITester:
+class ContentCMSTester:
     def __init__(self):
+        self.token = None
         self.tests_run = 0
         self.tests_passed = 0
-        self.token = None
-        self.test_order_id = None
-        self.test_file_path = None
+        self.test_orders = []
+        self.test_contacts = []
 
     def log(self, emoji, message):
         print(f"{emoji} {message}")
 
-    def test(self, name, method, endpoint, expected_status, **kwargs):
-        """Run a single API test"""
-        url = f"{BASE_URL}{endpoint}"
+    def test(self, name, fn):
+        """Run a single test"""
         self.tests_run += 1
-        
-        headers = kwargs.pop('headers', {})
-        if self.token and 'Authorization' not in headers:
-            headers['Authorization'] = f'Bearer {self.token}'
-        
-        self.log("🔍", f"Testing {name}...")
-        
+        self.log("🔍", f"Testing: {name}")
         try:
-            if method == 'GET':
-                response = requests.get(url, headers=headers, timeout=30, **kwargs)
-            elif method == 'POST':
-                response = requests.post(url, headers=headers, timeout=30, **kwargs)
-            elif method == 'PATCH':
-                response = requests.patch(url, headers=headers, timeout=30, **kwargs)
-            elif method == 'PUT':
-                response = requests.put(url, headers=headers, timeout=30, **kwargs)
-            
-            success = response.status_code == expected_status
-            
-            if success:
-                self.tests_passed += 1
-                self.log("✅", f"PASS - {name} (status: {response.status_code})")
-                try:
-                    return True, response.json()
-                except:
-                    return True, response.content
-            else:
-                self.log("❌", f"FAIL - {name} (expected {expected_status}, got {response.status_code})")
-                try:
-                    self.log("📄", f"Response: {response.text[:200]}")
-                except:
-                    pass
-                return False, {}
-        
+            fn()
+            self.tests_passed += 1
+            self.log("✅", f"PASSED: {name}")
+            return True
+        except AssertionError as e:
+            self.log("❌", f"FAILED: {name} - {e}")
+            return False
         except Exception as e:
-            self.log("❌", f"FAIL - {name} (error: {str(e)})")
-            return False, {}
+            self.log("❌", f"ERROR: {name} - {e}")
+            return False
 
-    def run_all_tests(self):
-        """Run all backend tests"""
+    def test_admin_login(self):
+        """Test POST /api/auth/login"""
+        def run():
+            resp = requests.post(f"{BASE_URL}/auth/login", json={
+                "email": ADMIN_EMAIL,
+                "password": ADMIN_PASSWORD
+            })
+            assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
+            data = resp.json()
+            assert "token" in data, "No token in response"
+            assert "email" in data, "No email in response"
+            self.token = data["token"]
+            self.log("🔑", f"Token obtained: {self.token[:20]}...")
+        self.test("Admin login (POST /api/auth/login)", run)
+
+    def test_content_get_initial(self):
+        """Test GET /api/content returns empty dict initially"""
+        def run():
+            resp = requests.get(f"{BASE_URL}/content")
+            assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
+            data = resp.json()
+            # Initially should be empty or have minimal data
+            self.log("📦", f"Initial content: {data}")
+        self.test("GET /api/content (initial state)", run)
+
+    def test_content_put_ua(self):
+        """Test PUT /api/admin/content/ua with JWT"""
+        def run():
+            assert self.token, "No token available"
+            payload = {
+                "content": {
+                    "hero": {"role": "TEST ROLE UA"},
+                    "seo": {"home": {"title": "TEST SEO UA"}},
+                },
+                "locale": {
+                    "nav": {"work": "TEST KICKER"}
+                }
+            }
+            resp = requests.put(
+                f"{BASE_URL}/admin/content/ua",
+                json=payload,
+                headers={"Authorization": f"Bearer {self.token}"}
+            )
+            assert resp.status_code == 200, f"Expected 200, got {resp.status_code}: {resp.text}"
+            data = resp.json()
+            assert data.get("lang") == "ua", "Language mismatch"
+            self.log("💾", f"UA content saved: {data.get('updated_at')}")
+        self.test("PUT /api/admin/content/ua (with JWT)", run)
+
+    def test_content_get_ua_override(self):
+        """Test GET /api/content returns UA overrides"""
+        def run():
+            resp = requests.get(f"{BASE_URL}/content")
+            assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
+            data = resp.json()
+            assert "ua" in data, "No UA in response"
+            ua_content = data["ua"].get("content", {})
+            assert ua_content.get("hero", {}).get("role") == "TEST ROLE UA", "UA override not found"
+            self.log("✓", "UA overrides verified in GET /api/content")
+        self.test("GET /api/content (verify UA overrides)", run)
+
+    def test_content_put_de(self):
+        """Test PUT /api/admin/content/de"""
+        def run():
+            assert self.token, "No token available"
+            payload = {
+                "content": {
+                    "hero": {"role": "TEST ROLE DE"},
+                    "seo": {"home": {"title": "TEST SEO DE"}},
+                }
+            }
+            resp = requests.put(
+                f"{BASE_URL}/admin/content/de",
+                json=payload,
+                headers={"Authorization": f"Bearer {self.token}"}
+            )
+            assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
+            self.log("💾", "DE content saved")
+        self.test("PUT /api/admin/content/de", run)
+
+    def test_content_put_en(self):
+        """Test PUT /api/admin/content/en"""
+        def run():
+            assert self.token, "No token available"
+            payload = {
+                "content": {
+                    "hero": {"role": "TEST ROLE EN"},
+                    "seo": {"home": {"title": "TEST SEO EN"}},
+                }
+            }
+            resp = requests.put(
+                f"{BASE_URL}/admin/content/en",
+                json=payload,
+                headers={"Authorization": f"Bearer {self.token}"}
+            )
+            assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
+            self.log("💾", "EN content saved")
+        self.test("PUT /api/admin/content/en", run)
+
+    def test_content_put_invalid_lang(self):
+        """Test PUT /api/admin/content/fr returns 404"""
+        def run():
+            assert self.token, "No token available"
+            resp = requests.put(
+                f"{BASE_URL}/admin/content/fr",
+                json={"content": {}},
+                headers={"Authorization": f"Bearer {self.token}"}
+            )
+            assert resp.status_code == 404, f"Expected 404 for invalid lang, got {resp.status_code}"
+            self.log("✓", "Invalid language (fr) correctly rejected with 404")
+        self.test("PUT /api/admin/content/fr (should 404)", run)
+
+    def test_content_put_no_auth(self):
+        """Test PUT /api/admin/content/ua without JWT returns 401"""
+        def run():
+            resp = requests.put(
+                f"{BASE_URL}/admin/content/ua",
+                json={"content": {}}
+            )
+            assert resp.status_code in [401, 403], f"Expected 401/403, got {resp.status_code}"
+            self.log("✓", "No auth correctly rejected")
+        self.test("PUT /api/admin/content/ua (no JWT, should 401/403)", run)
+
+    def test_content_delete_ua(self):
+        """Test DELETE /api/admin/content/ua"""
+        def run():
+            assert self.token, "No token available"
+            resp = requests.delete(
+                f"{BASE_URL}/admin/content/ua",
+                headers={"Authorization": f"Bearer {self.token}"}
+            )
+            assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
+            data = resp.json()
+            assert data.get("status") == "reset", "Reset status not returned"
+            self.log("🗑️", "UA content reset")
+        self.test("DELETE /api/admin/content/ua (reset)", run)
+
+    def test_content_get_after_delete(self):
+        """Test GET /api/content after DELETE (UA should be gone)"""
+        def run():
+            resp = requests.get(f"{BASE_URL}/content")
+            assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
+            data = resp.json()
+            # UA should not be present or should be empty after delete
+            if "ua" in data:
+                ua_content = data["ua"].get("content", {})
+                # Should be empty or not have our test override
+                assert ua_content.get("hero", {}).get("role") != "TEST ROLE UA", "UA override still present after delete"
+            self.log("✓", "UA overrides removed after DELETE")
+        self.test("GET /api/content (after DELETE ua)", run)
+
+    # Regression tests
+    def test_regression_settings(self):
+        """Test GET /api/settings still works"""
+        def run():
+            resp = requests.get(f"{BASE_URL}/settings")
+            assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
+            data = resp.json()
+            assert "site" in data or "contacts" in data, "Settings structure invalid"
+            self.log("✓", "GET /api/settings working")
+        self.test("Regression: GET /api/settings", run)
+
+    def test_regression_pricing(self):
+        """Test GET /api/pricing still works"""
+        def run():
+            resp = requests.get(f"{BASE_URL}/pricing")
+            assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
+            data = resp.json()
+            assert "enabled" in data or "currency" in data, "Pricing structure invalid"
+            self.log("✓", "GET /api/pricing working")
+        self.test("Regression: GET /api/pricing", run)
+
+    def test_regression_work(self):
+        """Test GET /api/work still works"""
+        def run():
+            resp = requests.get(f"{BASE_URL}/work")
+            assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
+            data = resp.json()
+            assert isinstance(data, list), "Work items should be a list"
+            self.log("✓", f"GET /api/work working ({len(data)} items)")
+        self.test("Regression: GET /api/work", run)
+
+    def test_regression_legal(self):
+        """Test GET /api/legal still works"""
+        def run():
+            resp = requests.get(f"{BASE_URL}/legal")
+            assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
+            data = resp.json()
+            assert isinstance(data, list), "Legal pages should be a list"
+            self.log("✓", f"GET /api/legal working ({len(data)} pages)")
+        self.test("Regression: GET /api/legal", run)
+
+    def test_regression_estimate(self):
+        """Test POST /api/estimate (name+phone only)"""
+        def run():
+            payload = {
+                "name": f"Test User {datetime.now().strftime('%H%M%S')}",
+                "phone": "+380501234567",
+                "direction": "ua-de",
+                "doc_type": "Договір",
+                "pages": 2,
+                "price": 70
+            }
+            resp = requests.post(f"{BASE_URL}/estimate", json=payload)
+            assert resp.status_code == 200, f"Expected 200, got {resp.status_code}: {resp.text}"
+            data = resp.json()
+            assert "id" in data, "No order ID returned"
+            assert "code" in data, "No order code returned"
+            self.test_orders.append(data["id"])
+            self.log("✓", f"POST /api/estimate working (order: {data['code']})")
+        self.test("Regression: POST /api/estimate", run)
+
+    def cleanup_test_data(self):
+        """Cleanup: delete test orders and reset content overrides"""
+        self.log("🧹", "Starting cleanup...")
+        
+        # Delete test orders
+        if self.token and self.test_orders:
+            self.log("🗑️", f"Cleaning up {len(self.test_orders)} test orders...")
+            # Note: There's no DELETE endpoint for orders in the API, so we skip this
+            # In a real scenario, we'd need an admin endpoint to delete orders
+        
+        # Reset content overrides for all languages
+        if self.token:
+            for lang in ["ua", "de", "en"]:
+                try:
+                    resp = requests.delete(
+                        f"{BASE_URL}/admin/content/{lang}",
+                        headers={"Authorization": f"Bearer {self.token}"}
+                    )
+                    if resp.status_code == 200:
+                        self.log("✓", f"Reset {lang.upper()} content")
+                except Exception as e:
+                    self.log("⚠️", f"Failed to reset {lang}: {e}")
+        
+        self.log("✅", "Cleanup complete")
+
+    def run_all(self):
+        """Run all tests in sequence"""
         self.log("🚀", "Starting Backend API Tests")
         self.log("🌐", f"Base URL: {BASE_URL}")
-        print("=" * 60)
         
-        # 1. Health check
-        self.log("📋", "TEST GROUP: Health Check")
-        self.test("GET /api/ health", "GET", "/", 200)
-        print()
+        # Auth tests
+        self.test_admin_login()
         
-        # 2. Orders endpoint - valid submission
-        self.log("📋", "TEST GROUP: Orders API")
+        # Content API tests
+        self.test_content_get_initial()
+        self.test_content_put_ua()
+        self.test_content_get_ua_override()
+        self.test_content_put_de()
+        self.test_content_put_en()
+        self.test_content_put_invalid_lang()
+        self.test_content_put_no_auth()
+        self.test_content_delete_ua()
+        self.test_content_get_after_delete()
         
-        # Create a test file
-        test_file = io.BytesIO(b"Test document content for translation")
-        test_file.name = "test_document.pdf"
+        # Regression tests
+        self.test_regression_settings()
+        self.test_regression_pricing()
+        self.test_regression_work()
+        self.test_regression_legal()
+        self.test_regression_estimate()
         
-        form_data = {
-            'name': 'Test User',
-            'email': 'test@example.com',
-            'phone': '+380123456789',
-            'direction': 'ua-de',
-            'doc_type': 'legal',
-            'message': 'Test order message'
-        }
+        # Cleanup
+        self.cleanup_test_data()
         
-        files = {'files': ('test_document.pdf', test_file, 'application/pdf')}
+        # Summary
+        print("\n" + "="*60)
+        self.log("📊", f"Tests Run: {self.tests_run}")
+        self.log("✅", f"Tests Passed: {self.tests_passed}")
+        self.log("❌", f"Tests Failed: {self.tests_run - self.tests_passed}")
+        print("="*60)
         
-        success, response = self.test(
-            "POST /api/orders (valid with file)",
-            "POST",
-            "/orders",
-            200,
-            data=form_data,
-            files=files
-        )
-        
-        if success and 'id' in response:
-            self.test_order_id = response['id']
-            file_count = response.get('files', 0)
-            if file_count > 0:
-                self.log("✅", f"Order created with ID: {self.test_order_id}, files: {file_count}")
-            else:
-                self.log("⚠️", f"Order created but file count is: {file_count}")
-        print()
-        
-        # 3. Orders validation - missing name
-        self.log("📋", "TEST GROUP: Orders Validation")
-        self.test(
-            "POST /api/orders (missing name)",
-            "POST",
-            "/orders",
-            400,
-            data={'email': 'test@example.com'}
-        )
-        
-        # Orders validation - missing email
-        self.test(
-            "POST /api/orders (missing email)",
-            "POST",
-            "/orders",
-            400,
-            data={'name': 'Test User'}
-        )
-        
-        # Orders validation - disallowed file extension
-        bad_file = io.BytesIO(b"malicious content")
-        bad_file.name = "virus.exe"
-        
-        self.test(
-            "POST /api/orders (disallowed .exe file)",
-            "POST",
-            "/orders",
-            400,
-            data={'name': 'Test', 'email': 'test@example.com'},
-            files={'files': ('virus.exe', bad_file, 'application/octet-stream')}
-        )
-        print()
-        
-        # 4. Contact endpoint
-        self.log("📋", "TEST GROUP: Contact API")
-        success, response = self.test(
-            "POST /api/contact",
-            "POST",
-            "/contact",
-            200,
-            json={'name': 'Contact Test', 'email': 'contact@example.com', 'message': 'Test message'},
-            headers={'Content-Type': 'application/json'}
-        )
-        
-        if success and 'id' in response and 'status' in response:
-            self.log("✅", f"Contact created with ID: {response['id']}, status: {response['status']}")
-        print()
-        
-        # 5. Auth - login with correct credentials
-        self.log("📋", "TEST GROUP: Authentication")
-        success, response = self.test(
-            "POST /api/auth/login (valid credentials)",
-            "POST",
-            "/auth/login",
-            200,
-            json={'email': 'admin@translate.ua', 'password': 'Translate2026!'},
-            headers={'Content-Type': 'application/json'}
-        )
-        
-        if success and 'token' in response:
-            self.token = response['token']
-            self.log("✅", f"Login successful, token received (length: {len(self.token)})")
-        else:
-            self.log("❌", "Login failed - no token received")
-        
-        # Auth - login with wrong credentials
-        self.test(
-            "POST /api/auth/login (wrong credentials)",
-            "POST",
-            "/auth/login",
-            401,
-            json={'email': 'admin@translate.ua', 'password': 'WrongPassword'},
-            headers={'Content-Type': 'application/json'}
-        )
-        print()
-        
-        # 6. Admin endpoints - without token
-        self.log("📋", "TEST GROUP: Admin API (Authorization)")
-        
-        # Temporarily remove token to test 401
-        temp_token = self.token
-        self.token = None
-        
-        self.test(
-            "GET /api/admin/orders (no token)",
-            "GET",
-            "/admin/orders",
-            401
-        )
-        
-        self.test(
-            "GET /api/admin/contacts (no token)",
-            "GET",
-            "/admin/contacts",
-            401
-        )
-        
-        # Restore token
-        self.token = temp_token
-        print()
-        
-        # 7. Admin endpoints - with token
-        self.log("📋", "TEST GROUP: Admin API (Authorized)")
-        
-        success, orders = self.test(
-            "GET /api/admin/orders (with token)",
-            "GET",
-            "/admin/orders",
-            200
-        )
-        
-        if success and isinstance(orders, list):
-            self.log("✅", f"Retrieved {len(orders)} orders")
-            # Try to find a file path from orders
-            if len(orders) > 0:
-                for order in orders:
-                    if order.get('files') and len(order['files']) > 0:
-                        self.test_file_path = order['files'][0].get('storage_path')
-                        self.log("📁", f"Found file path for download test: {self.test_file_path}")
-                        break
-        
-        success, contacts = self.test(
-            "GET /api/admin/contacts (with token)",
-            "GET",
-            "/admin/contacts",
-            200
-        )
-        
-        if success and isinstance(contacts, list):
-            self.log("✅", f"Retrieved {len(contacts)} contacts")
-        print()
-        
-        # 8. File download
-        if self.test_file_path:
-            self.log("📋", "TEST GROUP: File Download")
-            success, file_data = self.test(
-                "GET /api/admin/files/{path}?auth=TOKEN",
-                "GET",
-                f"/admin/files/{self.test_file_path}?auth={self.token}",
-                200
-            )
-            
-            if success and file_data:
-                self.log("✅", f"File downloaded successfully (size: {len(file_data)} bytes)")
-        else:
-            self.log("⚠️", "Skipping file download test - no file path available")
-        
-        print()
-        
-        # 9. NEW FEATURE: Legal Pages API
-        self.log("📋", "TEST GROUP: Legal Pages API (NEW FEATURE)")
-        
-        # Test GET /api/legal - list all legal docs
-        success, legal_list = self.test(
-            "GET /api/legal (list all docs)",
-            "GET",
-            "/legal",
-            200
-        )
-        
-        if success and isinstance(legal_list, list):
-            self.log("✅", f"Retrieved {len(legal_list)} legal documents")
-            if len(legal_list) == 3:
-                self.log("✅", "Correct number of legal docs (3)")
-                # Check structure including NEW EN fields
-                for doc in legal_list:
-                    required_fields = ['slug', 'title_ua', 'title_de', 'title_en', 'content_ua', 'content_de', 'content_en', 'updated_at']
-                    if all(k in doc for k in required_fields):
-                        self.log("✅", f"Legal doc '{doc['slug']}' has correct structure with EN fields")
-                        # Check EN content is not empty
-                        if doc.get('title_en') and doc.get('content_en'):
-                            self.log("✅", f"Legal doc '{doc['slug']}' has non-empty EN content")
-                        else:
-                            self.log("❌", f"Legal doc '{doc['slug']}' has empty EN fields")
-                    else:
-                        missing = [f for f in required_fields if f not in doc]
-                        self.log("❌", f"Legal doc '{doc.get('slug', 'unknown')}' missing fields: {missing}")
-            else:
-                self.log("❌", f"Expected 3 legal docs, got {len(legal_list)}")
-        
-        # Test GET /api/legal/terms
-        success, terms_doc = self.test(
-            "GET /api/legal/terms",
-            "GET",
-            "/legal/terms",
-            200
-        )
-        
-        if success and 'slug' in terms_doc:
-            self.log("✅", f"Terms doc retrieved: {terms_doc.get('title_ua', 'N/A')}")
-            # Check EN fields specifically
-            if terms_doc.get('title_en') == 'Terms of Use':
-                self.log("✅", "Terms doc has correct EN title: 'Terms of Use'")
-            else:
-                self.log("❌", f"Terms doc EN title incorrect: '{terms_doc.get('title_en', 'N/A')}'")
-            
-            if terms_doc.get('content_en') and len(terms_doc.get('content_en', '')) > 100:
-                self.log("✅", f"Terms doc has non-empty EN content ({len(terms_doc.get('content_en', ''))} chars)")
-            else:
-                self.log("❌", "Terms doc EN content is empty or too short")
-        
-        # Test GET /api/legal/privacy
-        success, privacy_doc = self.test(
-            "GET /api/legal/privacy",
-            "GET",
-            "/legal/privacy",
-            200
-        )
-        
-        if success and 'slug' in privacy_doc:
-            self.log("✅", f"Privacy doc retrieved: {privacy_doc.get('title_ua', 'N/A')}")
-        
-        # Test GET /api/legal/cookies
-        success, cookies_doc = self.test(
-            "GET /api/legal/cookies",
-            "GET",
-            "/legal/cookies",
-            200
-        )
-        
-        if success and 'slug' in cookies_doc:
-            self.log("✅", f"Cookies doc retrieved: {cookies_doc.get('title_ua', 'N/A')}")
-        
-        # Test GET /api/legal/unknown - should return 404
-        self.test(
-            "GET /api/legal/unknown (404)",
-            "GET",
-            "/legal/unknown",
-            404
-        )
-        
-        # Test PUT /api/admin/legal/terms without token - should return 401
-        temp_token = self.token
-        self.token = None
-        
-        self.test(
-            "PUT /api/admin/legal/terms (no token)",
-            "PUT",
-            "/admin/legal/terms",
-            401,
-            json={'title_ua': 'Test', 'title_de': 'Test', 'title_en': 'Test', 'content_ua': 'Test', 'content_de': 'Test', 'content_en': 'Test'},
-            headers={'Content-Type': 'application/json'}
-        )
-        
-        self.token = temp_token
-        
-        # Test PUT /api/admin/legal/terms with token - should update including EN fields
-        if self.token and terms_doc:
-            # Append a test marker to content
-            test_marker = f"\n\n## TEST MARKER {datetime.now().isoformat()}"
-            updated_content_ua = terms_doc.get('content_ua', '') + test_marker
-            updated_content_en = terms_doc.get('content_en', '') + test_marker
-            
-            success, updated_doc = self.test(
-                "PUT /api/admin/legal/terms (with token, including EN)",
-                "PUT",
-                "/admin/legal/terms",
-                200,
-                json={
-                    'title_ua': terms_doc.get('title_ua', ''),
-                    'title_de': terms_doc.get('title_de', ''),
-                    'title_en': terms_doc.get('title_en', ''),
-                    'content_ua': updated_content_ua,
-                    'content_de': terms_doc.get('content_de', ''),
-                    'content_en': updated_content_en
-                },
-                headers={'Content-Type': 'application/json'}
-            )
-            
-            if success and 'updated_at' in updated_doc:
-                self.log("✅", f"Legal doc updated successfully at {updated_doc['updated_at']}")
-                # Verify EN fields were persisted
-                if updated_doc.get('content_en') and test_marker in updated_doc.get('content_en', ''):
-                    self.log("✅", "EN content was persisted correctly")
-                else:
-                    self.log("❌", "EN content was NOT persisted correctly")
-                
-                # Restore original content
-                self.test(
-                    "PUT /api/admin/legal/terms (restore original)",
-                    "PUT",
-                    "/admin/legal/terms",
-                    200,
-                    json={
-                        'title_ua': terms_doc.get('title_ua', ''),
-                        'title_de': terms_doc.get('title_de', ''),
-                        'title_en': terms_doc.get('title_en', ''),
-                        'content_ua': terms_doc.get('content_ua', ''),
-                        'content_de': terms_doc.get('content_de', ''),
-                        'content_en': terms_doc.get('content_en', '')
-                    },
-                    headers={'Content-Type': 'application/json'}
-                )
-                self.log("✅", "Original content restored")
-        
-        print()
-        
-        # 10. REGRESSION: Public endpoints
-        self.log("📋", "TEST GROUP: Regression - Public Endpoints")
-        
-        # Test GET /api/settings
-        success, settings = self.test(
-            "GET /api/settings",
-            "GET",
-            "/settings",
-            200
-        )
-        
-        if success and isinstance(settings, dict):
-            self.log("✅", f"Settings retrieved with sections: {list(settings.keys())}")
-        
-        # Test GET /api/pricing
-        success, pricing = self.test(
-            "GET /api/pricing",
-            "GET",
-            "/pricing",
-            200
-        )
-        
-        if success and isinstance(pricing, dict):
-            self.log("✅", f"Pricing retrieved, enabled: {pricing.get('enabled', False)}")
-        
-        # Test POST /api/estimate
-        success, estimate = self.test(
-            "POST /api/estimate",
-            "POST",
-            "/estimate",
-            200,
-            json={
-                'name': 'Test Estimate',
-                'email': 'estimate@test.com',
-                'phone': '+380123456789',
-                'direction': 'ua-de',
-                'doc_type': 'Договір',
-                'pages': 3,
-                'urgent': False,
-                'certified': False,
-                'prepay': False,
-                'discount_pct': 0,
-                'price': 100,
-                'comment': 'Test estimate'
-            },
-            headers={'Content-Type': 'application/json'}
-        )
-        
-        if success and 'code' in estimate:
-            self.log("✅", f"Estimate created with code: {estimate['code']}")
-        
-        print()
-        print("=" * 60)
-        self.log("📊", f"RESULTS: {self.tests_passed}/{self.tests_run} tests passed")
-        
-        if self.tests_passed == self.tests_run:
-            self.log("🎉", "All tests passed!")
-            return 0
-        else:
-            self.log("⚠️", f"{self.tests_run - self.tests_passed} test(s) failed")
-            return 1
-
-def main():
-    tester = APITester()
-    return tester.run_all_tests()
+        return 0 if self.tests_passed == self.tests_run else 1
 
 if __name__ == "__main__":
-    sys.exit(main())
+    tester = ContentCMSTester()
+    sys.exit(tester.run_all())

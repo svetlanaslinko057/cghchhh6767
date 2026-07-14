@@ -91,6 +91,10 @@ const SCHEMA = [
       ['text', 'content.manuscript.labels.original', 'Мітка 01 — оригінал'],
       ['text', 'content.manuscript.labels.transcription', 'Мітка 02 — розшифровка'],
       ['text', 'content.manuscript.labels.translation', 'Мітка 03 — переклад'],
+      ['text', 'content.manuscript.legend.abbr', 'Легенда: скорочення'],
+      ['text', 'content.manuscript.legend.illegible', 'Легенда: нерозбірливо'],
+      ['text', 'content.manuscript.legend.strike', 'Легенда: закреслено'],
+      ['text', 'content.manuscript.legend.fix', 'Легенда: виправлення'],
       ['text', 'content.manuscript.notesTitle', 'Заголовок приміток'],
       ['strings', 'content.manuscript.notes', 'Примітки перекладача'],
       ['area', 'content.manuscript.reviewNote', 'Дисклеймер під фрагментом'],
@@ -161,6 +165,7 @@ const SCHEMA = [
   {
     id: 'workPage', title: 'Сторінка «Приклади»', hint: 'Самі приклади робіт — у розділі «Приклади»',
     fields: [
+      ['text', 'locale.nav.work', 'Кікер сторінки'],
       ['text', 'locale.workPage.title', 'Заголовок сторінки'],
       ['area', 'locale.workPage.intro', 'Вступ'],
     ],
@@ -168,6 +173,7 @@ const SCHEMA = [
   {
     id: 'contactPage', title: 'Сторінка «Контакти»',
     fields: [
+      ['text', 'locale.nav.contact', 'Кікер сторінки'],
       ['text', 'locale.contactPage.title', 'Заголовок'],
       ['area', 'locale.contactPage.intro', 'Вступ'],
       ['text', 'locale.contactPage.name', 'Поле: імʼя'],
@@ -180,6 +186,7 @@ const SCHEMA = [
   {
     id: 'orderPage', title: 'Сторінка «Замовити переклад»',
     fields: [
+      ['text', 'locale.nav.order', 'Кікер сторінки'],
       ['text', 'locale.orderPage.title', 'Заголовок'],
       ['area', 'locale.orderPage.intro', 'Вступ'],
       ['text', 'locale.orderPage.name', 'Поле: імʼя'],
@@ -308,6 +315,24 @@ const SCHEMA = [
       ['text', 'locale.cookie.accept', 'Кнопка «Прийняти»'],
       ['text', 'locale.cookie.decline', 'Кнопка «Відхилити»'],
       ['text', 'locale.cookie.more', 'Лінк «Детальніше»'],
+    ],
+  },
+  {
+    id: 'seo', title: 'SEO — заголовки та описи сторінок', hint: 'Title і description для пошуковиків і соцмереж',
+    fields: [
+      ['text', 'content.seo.home.title', 'Головна · title'],
+      ['area', 'content.seo.home.description', 'Головна · description'],
+      ['text', 'content.seo.services.title', 'Послуги · title'],
+      ['area', 'content.seo.services.description', 'Послуги · description'],
+      ['text', 'content.seo.work.title', 'Приклади · title'],
+      ['area', 'content.seo.work.description', 'Приклади · description'],
+      ['text', 'content.seo.about.title', 'Про мене · title'],
+      ['area', 'content.seo.about.description', 'Про мене · description'],
+      ['text', 'content.seo.order.title', 'Замовлення · title'],
+      ['area', 'content.seo.order.description', 'Замовлення · description'],
+      ['text', 'content.seo.contact.title', 'Контакти · title'],
+      ['area', 'content.seo.contact.description', 'Контакти · description'],
+      ['strings', 'content.seo.offers', 'Послуги для Google (JSON-LD)'],
     ],
   },
 ];
