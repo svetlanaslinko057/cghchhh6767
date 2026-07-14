@@ -1,0 +1,20 @@
+{
+  "short_name": "Oksana Oliferenko",
+  "name": "Oksana Oliferenko — переклади документів UA ⇄ DE",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#F5F1E8",
+  "background_color": "#F5F1E8"
+}
