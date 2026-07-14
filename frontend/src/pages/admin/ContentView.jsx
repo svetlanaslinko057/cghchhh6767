@@ -291,7 +291,7 @@ const SCHEMA = [
       ['text', 'locale.track.title', 'Заголовок'],
       ['area', 'locale.track.intro', 'Вступ'],
       ['text', 'locale.track.code', 'Поле: код'],
-      ['text', 'locale.track.email', 'Поле: email'],
+      ['text', 'locale.track.contact', 'Поле: email або телефон'],
       ['text', 'locale.track.submit', 'Кнопка'],
       ['text', 'locale.track.checking', 'Стан перевірки'],
       ['text', 'locale.track.current', 'Поточний статус'],

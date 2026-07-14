@@ -44,8 +44,8 @@ function TrackSection() {
             <div className="form-2col">
               <div><label style={label}>{t('track.code')}</label>
                 <input style={inputStyle} value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} placeholder="a1b2c3d4" required data-testid="track-code" /></div>
-              <div><label style={label}>{t('track.email')}</label>
-                <input type="email" style={inputStyle} value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} required data-testid="track-email" /></div>
+              <div><label style={label}>{t('track.contact')}</label>
+                <input style={inputStyle} value={f.contact} onChange={(e) => setF({ ...f, contact: e.target.value })} placeholder="+49… / name@mail.com" required data-testid="track-contact" /></div>
             </div>
             <button className="btn btn-ghost trackx__btn mono" type="submit" disabled={state === 'checking'} data-testid="track-submit">
               {state === 'checking' ? t('track.checking') : `→ ${t('track.submit')}`}

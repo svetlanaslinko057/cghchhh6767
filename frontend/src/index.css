@@ -660,6 +660,8 @@ body:is(.pc-doc,.pc-cta,.pc-lang,.pc-edit) .pcursor{opacity:0}
 .adm-workform{padding:.2rem 0}
 .adm-pricelist{display:grid;gap:.6rem}
 .adm-pricerow{display:flex;gap:.6rem;align-items:center}
+.adm-pricerow--i18n{align-items:flex-start}
+.adm-pricerow--i18n > input[type="number"]{margin-top:0}
 .adm-faqrow{display:flex;gap:.7rem;align-items:flex-start}
 
 

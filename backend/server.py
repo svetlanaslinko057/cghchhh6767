@@ -89,7 +89,8 @@ class ReviewPayload(BaseModel):
 
 class TrackRequest(BaseModel):
     code: str
-    email: str
+    contact: str = ""  # email OR phone (single field)
+    email: str = ""    # back-compat with older clients
 
 
 class WorkItemPayload(BaseModel):
@@ -111,6 +112,8 @@ class PricingPayload(BaseModel):
     urgent_pct: float = 30
     certified_fee: float = 10
     note: str = ""
+    note_de: str = ""
+    note_en: str = ""
     pair_multipliers: Dict[str, Any] = {"ua-de": 1.0, "ua-en": 1.0, "de-en": 1.2}
     discounts: Dict[str, Any] = {
         "volume_enabled": True,
@@ -191,18 +194,20 @@ DEFAULT_PRICING = {
     "enabled": True,
     "currency": "EUR",
     "doc_types": [
-        {"name": "Свідоцтво / довідка", "price": 35},
-        {"name": "Довіреність", "price": 35},
-        {"name": "Диплом з додатком", "price": 45},
-        {"name": "Договір", "price": 45},
-        {"name": "Судове рішення", "price": 55},
-        {"name": "Рукописний документ", "price": 60},
-        {"name": "Інший документ", "price": 40},
+        {"name": "Свідоцтво / довідка", "name_de": "Urkunde / Bescheinigung", "name_en": "Certificate / official statement", "price": 35},
+        {"name": "Довіреність", "name_de": "Vollmacht", "name_en": "Power of attorney", "price": 35},
+        {"name": "Диплом з додатком", "name_de": "Diplom mit Anhang", "name_en": "Diploma with transcript", "price": 45},
+        {"name": "Договір", "name_de": "Vertrag", "name_en": "Contract", "price": 45},
+        {"name": "Судове рішення", "name_de": "Gerichtsentscheidung", "name_en": "Court decision", "price": 55},
+        {"name": "Рукописний документ", "name_de": "Handschriftliches Dokument", "name_en": "Handwritten document", "price": 60},
+        {"name": "Інший документ", "name_de": "Anderes Dokument", "name_en": "Other document", "price": 40},
     ],
     "extra_page_price": 15,
     "urgent_pct": 30,
     "certified_fee": 10,
     "note": "Орієнтовна вартість. Точну ціну та строк я підтверджую після перегляду документа.",
+    "note_de": "Richtwert. Den genauen Preis und die Frist bestätige ich nach Durchsicht des Dokuments.",
+    "note_en": "Estimated price. I confirm the exact price and deadline after reviewing the document.",
     # language pairs: base doc prices are for UA⇄DE; other pairs use a multiplier
     "pair_multipliers": {"ua-de": 1.0, "ua-en": 1.0, "de-en": 1.2},
     # conversion promos, fully admin-configurable
@@ -395,14 +400,19 @@ async def public_reviews():
 
 @api_router.post("/orders/track")
 async def track_order(payload: TrackRequest):
+    """Track by code + contact (email OR phone) — phone-only leads can track too."""
     code = payload.code.strip().lower()
-    email = payload.email.strip()
-    if len(code) < 6 or not email:
-        raise HTTPException(status_code=400, detail="Вкажіть код замовлення (мін. 6 символів) та email")
+    contact = (payload.contact or payload.email or "").strip()
+    if len(code) < 6 or not contact:
+        raise HTTPException(status_code=400, detail="Вкажіть код замовлення (мін. 6 символів) та email або телефон")
     candidates = await db.orders.find(
-        {"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}}, {"_id": 0}
-    ).to_list(300)
-    order = next((o for o in candidates if str(o.get("id", "")).lower().startswith(code)), None)
+        {"id": {"$regex": f"^{re.escape(code)}"}}, {"_id": 0}
+    ).to_list(20)
+    if "@" in contact:
+        order = next((o for o in candidates if (o.get("email") or "").strip().lower() == contact.lower()), None)
+    else:
+        norm = re.sub(r"\D", "", contact)
+        order = next((o for o in candidates if norm and re.sub(r"\D", "", o.get("phone") or "") == norm), None)
     if not order:
         raise HTTPException(status_code=404, detail="Замовлення не знайдено")
     history = order.get("status_history") or [{"status": order.get("status", "new"), "at": order.get("created_at")}]

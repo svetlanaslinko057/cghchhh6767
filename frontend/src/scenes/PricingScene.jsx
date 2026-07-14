@@ -17,7 +17,8 @@ export default function PricingScene() {
   if (p && p.enabled === false) return null;
   const cur = p ? (CUR[p.currency] || p.currency) : '€';
   const from = i18n.language === 'de' ? 'ab' : i18n.language === 'en' ? 'from' : 'від';
-  const ticker = (p?.doc_types || []).map((d) => `${d.name} — ${from} ${d.price} ${cur}`);
+  const lang = ['de', 'en'].includes(i18n.language) ? i18n.language : 'ua';
+  const ticker = (p?.doc_types || []).map((d) => `${(lang === 'ua' ? d.name : d[`name_${lang}`] || d.name)} — ${from} ${d.price} ${cur}`);
 
   return (
     <section id="pricing" className="scene pricing-scene" style={{ background: 'var(--paper)' }} data-testid="pricing-scene">

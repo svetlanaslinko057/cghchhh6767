@@ -27,7 +27,7 @@ export default function PricingView() {
     return { ...prev, doc_types: dt };
   });
 
-  const addType = () => setP((prev) => ({ ...prev, doc_types: [...prev.doc_types, { name: '', price: 0 }] }));
+  const addType = () => setP((prev) => ({ ...prev, doc_types: [...prev.doc_types, { name: '', name_de: '', name_en: '', price: 0 }] }));
   const rmType = (i) => setP((prev) => ({ ...prev, doc_types: prev.doc_types.filter((_, j) => j !== i) }));
 
   const updMult = (key) => (e) => setP((prev) => ({
@@ -58,7 +58,12 @@ export default function PricingView() {
     try {
       const payload = {
         ...p,
-        doc_types: p.doc_types.filter((d) => d.name.trim()).map((d) => ({ name: d.name.trim(), price: Number(d.price) || 0 })),
+        doc_types: p.doc_types.filter((d) => d.name.trim()).map((d) => ({
+          name: d.name.trim(),
+          name_de: (d.name_de || '').trim(),
+          name_en: (d.name_en || '').trim(),
+          price: Number(d.price) || 0,
+        })),
         extra_page_price: Number(p.extra_page_price) || 0,
         urgent_pct: Number(p.urgent_pct) || 0,
         certified_fee: Number(p.certified_fee) || 0,
@@ -138,13 +143,19 @@ export default function PricingView() {
           <span className="mono adm-block__no">02</span>
           <div>
             <h2>Типи документів і базові ціни</h2>
-            <p>Базова ціна — за першу сторінку документа цього типу (для пари українська ⇄ німецька).</p>
+            <p>Базова ціна — за першу сторінку документа цього типу (для пари українська ⇄ німецька). Назви DE/EN показуються на відповідних версіях сайту; якщо порожньо — використовується українська.</p>
           </div>
         </div>
         <div className="adm-pricelist" data-testid="pricing-types">
           {p.doc_types.map((d, i) => (
-            <div key={i} className="adm-pricerow">
-              <input className="adm-input" value={d.name} onChange={(e) => updType(i, 'name', e.target.value)} placeholder="Назва типу" data-testid={`pricing-type-name-${i}`} />
+            <div key={i} className="adm-pricerow adm-pricerow--i18n">
+              <div style={{ display: 'grid', gap: '.45rem', flex: 1, minWidth: 0 }}>
+                <input className="adm-input" value={d.name} onChange={(e) => updType(i, 'name', e.target.value)} placeholder="Назва типу (UA)" data-testid={`pricing-type-name-${i}`} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.45rem' }}>
+                  <input className="adm-input" value={d.name_de || ''} onChange={(e) => updType(i, 'name_de', e.target.value)} placeholder="Name (DE)" data-testid={`pricing-type-name-de-${i}`} />
+                  <input className="adm-input" value={d.name_en || ''} onChange={(e) => updType(i, 'name_en', e.target.value)} placeholder="Name (EN)" data-testid={`pricing-type-name-en-${i}`} />
+                </div>
+              </div>
               <input className="adm-input" type="number" min="0" style={{ width: 110 }} value={d.price} onChange={(e) => updType(i, 'price', e.target.value)} data-testid={`pricing-type-price-${i}`} />
               <button className="adm-mini adm-mini--danger" onClick={() => rmType(i)} aria-label="видалити" data-testid={`pricing-type-remove-${i}`}>✕</button>
             </div>
@@ -227,9 +238,13 @@ export default function PricingView() {
       <section className="adm-block">
         <div className="adm-block__head">
           <span className="mono adm-block__no">05</span>
-          <div><h2>Примітка під прорахунком</h2></div>
+          <div><h2>Примітка під прорахунком</h2><p>Трьома мовами; якщо DE/EN порожні — показується українська.</p></div>
         </div>
-        <textarea className="adm-input" rows={2} value={p.note} onChange={upd('note')} data-testid="pricing-note" />
+        <div style={{ display: 'grid', gap: '.6rem' }}>
+          <textarea className="adm-input" rows={2} value={p.note} onChange={upd('note')} placeholder="Примітка (UA)" data-testid="pricing-note" />
+          <textarea className="adm-input" rows={2} value={p.note_de || ''} onChange={upd('note_de')} placeholder="Anmerkung (DE)" data-testid="pricing-note-de" />
+          <textarea className="adm-input" rows={2} value={p.note_en || ''} onChange={upd('note_en')} placeholder="Note (EN)" data-testid="pricing-note-en" />
+        </div>
       </section>
 
       <div className="adm-savebar">

@@ -53,7 +53,7 @@ const CUR = { EUR: '€', USD: '$', UAH: '₴' };
 
 export default function Calculator({ compact = false, onOrdered }) {
   const nav = useNavigate();
-  const { t: tr } = useTranslation();
+  const { t: tr, i18n } = useTranslation();
   const [p, setP] = useState(null);
   const [typeIdx, setTypeIdx] = useState(0);
   const [pages, setPages] = useState(1);
@@ -76,6 +76,10 @@ export default function Calculator({ compact = false, onOrdered }) {
   const r = calcPrice(p, typeIdx, pages, direction, { urgent, certified, prepay });
   const cur = CUR[p.currency] || p.currency;
   const doc = p.doc_types[typeIdx] || {};
+  // Admin-managed doc-type names + note are per-language (UA base, DE/EN optional with UA fallback)
+  const lang = ['de', 'en'].includes(i18n.language) ? i18n.language : 'ua';
+  const docName = (dt) => ((lang === 'ua' ? dt.name : dt[`name_${lang}`] || dt.name) || '');
+  const noteText = lang === 'ua' ? p.note : p[`note_${lang}`] || p.note;
   const d = p.discounts || {};
   const mult = pairMult(p, direction);
   const tier = nextVolumeTier(p, pages);
@@ -126,7 +130,7 @@ export default function Calculator({ compact = false, onOrdered }) {
   };
 
   const docOptions = p.doc_types.map((dt, i) => ({
-    value: i, label: dt.name,
+    value: i, label: docName(dt),
     meta: `${tr('calc.from')} ${Math.round(Number(dt.price) * mult)} ${cur}`,
   }));
   const dirOptions = DIRECTIONS.map((k) => ({ value: k, label: tr(`calc.dirs.${k}`), meta: DIR_SHORT[k] }));
@@ -185,7 +189,7 @@ export default function Calculator({ compact = false, onOrdered }) {
 
       <div className="calc__receipt">
         <div className="mono calc-receipt__head">{tr('calc.receipt')}</div>
-        <div className="calc-line"><span>{doc.name}{mult !== 1 ? <em className="mono calc-mult"> ×{mult}</em> : null}</span><span>{Math.round(Number(doc.price) * mult)} {cur}</span></div>
+        <div className="calc-line"><span>{docName(doc)}{mult !== 1 ? <em className="mono calc-mult"> ×{mult}</em> : null}</span><span>{Math.round(Number(doc.price) * mult)} {cur}</span></div>
         {pages > 1 && <div className="calc-line"><span>+ {pages - 1} {tr('calc.extraPages')}</span><span>{Math.round((pages - 1) * Number(p.extra_page_price) * mult)} {cur}</span></div>}
         {urgent && <div className="calc-line"><span>{tr('calc.urgent')}</span><span>+{p.urgent_pct}%</span></div>}
         {r.volumePct > 0 && <div className="calc-line calc-line--discount" data-testid="calc-discount-volume"><span>{tr('calc.discountVolume')}</span><span>−{r.volumePct}%</span></div>}
@@ -207,7 +211,7 @@ export default function Calculator({ compact = false, onOrdered }) {
             </button>
           </div>
         )}
-        {p.note && <p className="calc-note">{p.note}</p>}
+        {noteText && <p className="calc-note">{noteText}</p>}
         <div className="calc-ctas">
           {leadState === 'success' ? (
             <div className="calc-sentbox" data-testid="calc-lead-success">
